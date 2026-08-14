@@ -112,21 +112,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
 
         internal static bool TryGetTorrentId(ReleaseInfo release, out string torrentId)
         {
-            torrentId = null;
-            var guid = release?.Guid;
-            if (string.IsNullOrWhiteSpace(guid) || !guid.StartsWith("MAM-", StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            var candidate = guid.Substring(4);
-            if (!long.TryParse(candidate, out var numericId) || numericId <= 0)
-            {
-                return false;
-            }
-
-            torrentId = candidate;
-            return true;
+            return MyAnonaMouseReleaseIdentity.TryParse(release?.Guid, out torrentId);
         }
 
         private MamUnsatisfiedSlotAvailability Evaluate(RemoteBook remoteBook, bool reserve)

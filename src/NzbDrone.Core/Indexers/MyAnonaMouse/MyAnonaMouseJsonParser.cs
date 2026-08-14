@@ -262,7 +262,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
             {
                 Title = title, // Use original MAM title to preserve part info
                 InfoUrl = $"{_settings.BaseUrl.TrimEnd('/')}/t/{id}",
-                Guid = $"MAM-{id}",
+                Guid = MyAnonaMouseReleaseIdentity.Build(id),
                 DownloadUrl = BuildDownloadUrl(id, torrent),
                 PublishDate = added.DateTime,
                 Size = size,
@@ -1090,7 +1090,7 @@ namespace NzbDrone.Core.Indexers.MyAnonaMouse
 
         private string BuildDownloadUrl(string id, JToken torrent)
         {
-            var url = $"{_settings.BaseUrl.TrimEnd('/')}/tor/download.php?tid={id}";
+            var url = $"{_settings.BaseUrl.TrimEnd('/')}{MyAnonaMouseReleaseIdentity.DownloadPath}?tid={id}";
             if (!IsGloballyFreeleechTorrent(torrent) && !IsVipExclusiveTorrent(torrent))
             {
                 url += "&canUseToken=true";

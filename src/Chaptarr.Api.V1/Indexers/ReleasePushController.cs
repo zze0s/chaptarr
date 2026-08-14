@@ -10,6 +10,7 @@ using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.MyAnonaMouse;
 using NzbDrone.Core.Parser.Model;
 
 namespace Chaptarr.Api.V1.Indexers
@@ -59,6 +60,8 @@ namespace Chaptarr.Api.V1.Indexers
 
             ResolveIndexer(info);
 
+            ApplyIndexerReleaseIdentity(info);
+
             var downloadClientId = ResolveDownloadClientId(release);
 
             DownloadDecision decision;
@@ -78,6 +81,30 @@ namespace Chaptarr.Api.V1.Indexers
             }
 
             return MapDecisions(new[] { decision }).First();
+        }
+
+        // A pushed release carries no indexer identity, so the generic PUSH- guid stands in for one.
+        // MyAnonaMouse reserves unsatisfied slots against a "MAM-<torrent id>" guid, and without one
+        // every pushed MAM release is held back as "no valid MAM torrent identity", so recover the
+        // identity from the download url once the indexer is known.
+        private void ApplyIndexerReleaseIdentity(ReleaseInfo release)
+        {
+            if (release.IndexerId == 0)
+            {
+                return;
+            }
+
+            var definition = _indexerFactory.Find(release.IndexerId);
+
+            if (MyAnonaMouseReleaseIdentity.TryDeriveFromIndexer(definition, release, out var guid))
+            {
+                release.Guid = guid;
+                _logger.Debug("Push Release {0} resolved to MyAnonaMouse identity {1}.", release.Title, guid);
+            }
+            else if (definition?.Settings is MyAnonaMouseSettings)
+            {
+                _logger.Debug("Push Release {0} is on a MyAnonaMouse indexer but {1} is not its torrent download endpoint.", release.Title, release.DownloadUrl);
+            }
         }
 
         private void ResolveIndexer(ReleaseInfo release)
